@@ -43,7 +43,7 @@ export const PixGenerator: React.FC = () => {
   };
 
   return (
-    <Card className="max-w-md mx-auto mt-8 p-6">
+    <Card className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg">
       <h2 className="text-xl font-bold mb-4">Gerar QR PIX (4p.finance)</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
@@ -53,7 +53,7 @@ export const PixGenerator: React.FC = () => {
           placeholder="Valor em BRL (ex: 250,00)"
           required
         />
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading} className="shadow-none">
           {loading ? "Gerando..." : "Gerar PIX"}
         </Button>
       </form>
@@ -63,7 +63,7 @@ export const PixGenerator: React.FC = () => {
             <img
               src={result.qrImage}
               alt="QR Code PIX"
-              className="mx-auto mb-4 rounded-lg bg-gray-100 dark:bg-gray-800"
+              className="mx-auto mb-4 rounded-lg bg-gray-100 dark:bg-gray-800 shadow-none"
               style={{ width: 220, height: 220 }}
             />
           )}
@@ -71,7 +71,7 @@ export const PixGenerator: React.FC = () => {
             <div className="mb-2">
               <label className="block text-sm font-medium mb-1">PIX copia e cola:</label>
               <textarea
-                className="w-full p-2 rounded bg-gray-100 dark:bg-gray-800 text-xs"
+                className="w-full p-2 rounded bg-gray-100 dark:bg-gray-800 text-xs shadow-none"
                 rows={2}
                 value={result.pixCopiaCola}
                 readOnly
