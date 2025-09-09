@@ -13,7 +13,7 @@ type PixResult = {
   error?: string;
 };
 
-const DEFAULT_BACKEND_URL = "http://localhost:8080/scrape";
+const DEFAULT_BACKEND_URL = "https://trvgqfnvoymwgxtlkpvi.supabase.co/functions/v1/pix-scraper";
 const BACKEND_URL_KEY = "pix_backend_url";
 
 export const PixGenerator: React.FC = () => {
@@ -54,7 +54,7 @@ export const PixGenerator: React.FC = () => {
       toast.success("URL do backend salva e conexão bem-sucedida!");
     } catch {
       toast.error(
-        "Não foi possível conectar ao backend nesta URL. Verifique se o backend está rodando, se a URL está correta e se o CORS está habilitado."
+        "Não foi possível conectar ao backend nesta URL. Verifique se a URL está correta e se o serviço está disponível."
       );
     } finally {
       setTestingBackend(false);
@@ -83,7 +83,7 @@ export const PixGenerator: React.FC = () => {
       }
     } catch (err: any) {
       toast.error(
-        "Erro de conexão com o backend. Verifique se o backend está rodando, se a URL está correta e se o CORS está habilitado: " +
+        "Erro de conexão com o backend. Verifique se a URL está correta e se o serviço está disponível: " +
           backendUrl
       );
     } finally {
@@ -99,7 +99,7 @@ export const PixGenerator: React.FC = () => {
           type="text"
           value={backendUrlInput}
           onChange={(e) => setBackendUrlInput(e.target.value)}
-          placeholder="URL do backend (ex: http://localhost:8080/scrape)"
+          placeholder="URL do backend (ex: https://trvgqfnvoymwgxtlkpvi.supabase.co/functions/v1/pix-scraper)"
           className="text-xs"
         />
         <Button type="submit" variant="secondary" className="text-xs px-3 py-2" disabled={testingBackend}>
