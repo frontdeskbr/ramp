@@ -54,7 +54,7 @@ export const PixGenerator: React.FC = () => {
       toast.success("URL do backend salva e conexão bem-sucedida!");
     } catch {
       toast.error(
-        "Não foi possível conectar ao backend nesta URL. Verifique se o backend está rodando e a URL está correta."
+        "Não foi possível conectar ao backend nesta URL. Verifique se o backend está rodando, se a URL está correta e se o CORS está habilitado."
       );
     } finally {
       setTestingBackend(false);
@@ -83,7 +83,7 @@ export const PixGenerator: React.FC = () => {
       }
     } catch (err: any) {
       toast.error(
-        "Erro de conexão com o backend. Verifique a URL do backend e se o serviço está rodando: " +
+        "Erro de conexão com o backend. Verifique se o backend está rodando, se a URL está correta e se o CORS está habilitado: " +
           backendUrl
       );
     } finally {
