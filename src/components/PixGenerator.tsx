@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,20 +13,42 @@ type PixResult = {
   error?: string;
 };
 
-// Altere esta variável para a URL do seu backend, se necessário
-const BACKEND_URL = "http://localhost:8080/scrape";
+const DEFAULT_BACKEND_URL = "http://localhost:8080/scrape";
+const BACKEND_URL_KEY = "pix_backend_url";
 
 export const PixGenerator: React.FC = () => {
   const [amount, setAmount] = useState("250,00");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PixResult | null>(null);
+  const [backendUrl, setBackendUrl] = useState(DEFAULT_BACKEND_URL);
+  const [backendUrlInput, setBackendUrlInput] = useState(DEFAULT_BACKEND_URL);
+
+  // Carrega a URL do backend do localStorage ao iniciar
+  useEffect(() => {
+    const saved = localStorage.getItem(BACKEND_URL_KEY);
+    if (saved) {
+      setBackendUrl(saved);
+      setBackendUrlInput(saved);
+    }
+  }, []);
+
+  // Salva a URL do backend no localStorage sempre que mudar
+  useEffect(() => {
+    localStorage.setItem(BACKEND_URL_KEY, backendUrl);
+  }, [backendUrl]);
+
+  const handleBackendUrlChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    setBackendUrl(backendUrlInput.trim());
+    toast.success("URL do backend atualizada!");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setResult(null);
     try {
-      const res = await fetch(BACKEND_URL, {
+      const res = await fetch(backendUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amountBRL: amount }),
@@ -42,7 +64,10 @@ export const PixGenerator: React.FC = () => {
         toast.error("Erro ao gerar PIX: " + (data.error || "Desconhecido"));
       }
     } catch (err: any) {
-      toast.error("Erro de conexão com o backend. Verifique a URL do backend e se o serviço está rodando.");
+      toast.error(
+        "Erro de conexão com o backend. Verifique a URL do backend e se o serviço está rodando: " +
+          backendUrl
+      );
     } finally {
       setLoading(false);
     }
@@ -51,6 +76,18 @@ export const PixGenerator: React.FC = () => {
   return (
     <Card className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg">
       <h2 className="text-xl font-bold mb-4">Gerar QR PIX (4p.finance)</h2>
+      <form onSubmit={handleBackendUrlChange} className="flex items-center gap-2 mb-4">
+        <Input
+          type="text"
+          value={backendUrlInput}
+          onChange={(e) => setBackendUrlInput(e.target.value)}
+          placeholder="URL do backend (ex: http://localhost:8080/scrape)"
+          className="text-xs"
+        />
+        <Button type="submit" variant="secondary" className="text-xs px-3 py-2">
+          Salvar URL
+        </Button>
+      </form>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           type="text"
@@ -103,7 +140,7 @@ export const PixGenerator: React.FC = () => {
       )}
       <div className="mt-4 text-xs text-gray-400">
         <span>
-          Backend: <code>{BACKEND_URL}</code>
+          Backend: <code>{backendUrl}</code>
         </span>
       </div>
     </Card>
