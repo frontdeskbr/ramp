@@ -13,6 +13,56 @@ const getTitle = (hash: string) => {
   return "Entrar";
 };
 
+const localization = {
+  variables: {
+    sign_in: {
+      email_label: "E-mail",
+      password_label: "Senha",
+      email_input_placeholder: "Seu e-mail",
+      password_input_placeholder: "Sua senha",
+      button_label: "Entrar",
+      link_text: "Já tem uma conta? Entrar",
+      loading_button_label: "Entrando...",
+      social_provider_text: "Entrar com {{provider}}",
+      link_text_forgot_password: "Esqueceu a senha?",
+      link_text_magic_link: "Entrar com link mágico",
+      no_account_text: "Não tem uma conta?",
+      sign_up_link: "Registrar",
+    },
+    sign_up: {
+      email_label: "E-mail",
+      password_label: "Senha",
+      email_input_placeholder: "Seu e-mail",
+      password_input_placeholder: "Crie uma senha",
+      button_label: "Registrar",
+      loading_button_label: "Registrando...",
+      link_text: "Não tem uma conta? Registrar",
+      social_provider_text: "Registrar com {{provider}}",
+      link_text_sign_in: "Já tem uma conta? Entrar",
+    },
+    forgotten_password: {
+      email_label: "E-mail",
+      email_input_placeholder: "Seu e-mail",
+      button_label: "Enviar link de recuperação",
+      loading_button_label: "Enviando...",
+      link_text: "Voltar para o login",
+    },
+    magic_link: {
+      email_input_label: "E-mail",
+      email_input_placeholder: "Seu e-mail",
+      button_label: "Enviar link mágico",
+      loading_button_label: "Enviando...",
+      link_text: "Voltar para o login",
+    },
+    update_password: {
+      password_label: "Nova senha",
+      password_input_placeholder: "Digite a nova senha",
+      button_label: "Atualizar senha",
+      loading_button_label: "Atualizando...",
+    },
+  },
+};
+
 const Login = () => {
   const { session } = useSession();
   const navigate = useNavigate();
@@ -39,6 +89,7 @@ const Login = () => {
           appearance={{ theme: ThemeSupa }}
           theme="light"
           providers={[]}
+          localization={localization}
         />
       </div>
     </div>
