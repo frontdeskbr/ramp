@@ -22,6 +22,7 @@ export const PixGenerator: React.FC = () => {
   const [result, setResult] = useState<PixResult | null>(null);
   const [backendUrl, setBackendUrl] = useState(DEFAULT_BACKEND_URL);
   const [backendUrlInput, setBackendUrlInput] = useState(DEFAULT_BACKEND_URL);
+  const [testingBackend, setTestingBackend] = useState(false);
 
   // Carrega a URL do backend do localStorage ao iniciar
   useEffect(() => {
@@ -37,10 +38,27 @@ export const PixGenerator: React.FC = () => {
     localStorage.setItem(BACKEND_URL_KEY, backendUrl);
   }, [backendUrl]);
 
-  const handleBackendUrlChange = (e: React.FormEvent) => {
+  const handleBackendUrlChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    setBackendUrl(backendUrlInput.trim());
-    toast.success("URL do backend atualizada!");
+    const url = backendUrlInput.trim();
+    setTestingBackend(true);
+    // Testa conexão com o backend
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amountBRL: "1,00" }),
+      });
+      if (!res.ok) throw new Error();
+      setBackendUrl(url);
+      toast.success("URL do backend salva e conexão bem-sucedida!");
+    } catch {
+      toast.error(
+        "Não foi possível conectar ao backend nesta URL. Verifique se o backend está rodando e a URL está correta."
+      );
+    } finally {
+      setTestingBackend(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,8 +102,8 @@ export const PixGenerator: React.FC = () => {
           placeholder="URL do backend (ex: http://localhost:8080/scrape)"
           className="text-xs"
         />
-        <Button type="submit" variant="secondary" className="text-xs px-3 py-2">
-          Salvar URL
+        <Button type="submit" variant="secondary" className="text-xs px-3 py-2" disabled={testingBackend}>
+          {testingBackend ? "Testando..." : "Salvar URL"}
         </Button>
       </form>
       <form onSubmit={handleSubmit} className="space-y-4">
