@@ -13,6 +13,9 @@ type PixResult = {
   error?: string;
 };
 
+// Altere esta variável para a URL do seu backend, se necessário
+const BACKEND_URL = "http://localhost:8080/scrape";
+
 export const PixGenerator: React.FC = () => {
   const [amount, setAmount] = useState("250,00");
   const [loading, setLoading] = useState(false);
@@ -23,11 +26,14 @@ export const PixGenerator: React.FC = () => {
     setLoading(true);
     setResult(null);
     try {
-      const res = await fetch("http://localhost:8080/scrape", {
+      const res = await fetch(BACKEND_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amountBRL: amount }),
       });
+      if (!res.ok) {
+        throw new Error("Falha ao conectar ao backend.");
+      }
       const data = await res.json();
       setResult(data);
       if (data.ok) {
@@ -36,7 +42,7 @@ export const PixGenerator: React.FC = () => {
         toast.error("Erro ao gerar PIX: " + (data.error || "Desconhecido"));
       }
     } catch (err: any) {
-      toast.error("Erro de conexão com o backend.");
+      toast.error("Erro de conexão com o backend. Verifique a URL do backend e se o serviço está rodando.");
     } finally {
       setLoading(false);
     }
@@ -90,11 +96,16 @@ export const PixGenerator: React.FC = () => {
               </ul>
             </div>
           )}
-          {result.error && (
+          {result?.error && (
             <div className="text-red-500 mt-2">{result.error}</div>
           )}
         </div>
       )}
+      <div className="mt-4 text-xs text-gray-400">
+        <span>
+          Backend: <code>{BACKEND_URL}</code>
+        </span>
+      </div>
     </Card>
   );
 };
