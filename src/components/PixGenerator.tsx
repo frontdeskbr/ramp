@@ -5,26 +5,36 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
 export const PixGenerator: React.FC = () => {
-  const [amount, setAmount] = useState("250,00");
+  const [amount, setAmount] = useState("");
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [pixCode, setPixCode] = useState<string | null>(null);
 
   const generatePix = async () => {
+    if (!amount) {
+      toast.error("Por favor, insira um valor");
+      return;
+    }
+
     try {
-      // Simula geração de PIX
-      const pixCodigoBase = "00020126360014BR.GOV.BCB.PIX0114+551199999999520400005303986540";
-      const valorFormatado = amount.replace(",", ".");
-      const pixCompleto = `${pixCodigoBase}${valorFormatado}5802BR5920NOME DO RECEBEDOR6009SAO PAULO62070503***6304ABCD`;
-      
-      // Gera QR Code usando API pública
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(pixCompleto)}`;
+      const response = await fetch('https://trvgqfnvoymwgxtlkpvi.supabase.co/functions/v1/pix-scraper', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ amountBRL: amount })
+      });
 
-      setQrCode(qrCodeUrl);
-      setPixCode(pixCompleto);
+      const data = await response.json();
 
-      toast.success("PIX gerado com sucesso!");
+      if (data.ok) {
+        setQrCode(data.qrImage);
+        setPixCode(data.pixCopiaCola);
+        toast.success("PIX gerado com sucesso!");
+      } else {
+        toast.error(data.error || "Erro ao gerar PIX");
+      }
     } catch (error) {
-      toast.error("Erro ao gerar PIX");
+      toast.error("Erro ao conectar com o serviço de PIX");
       console.error(error);
     }
   };
