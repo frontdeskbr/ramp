@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
+const BASE_URL = "https://ramp-production-789f.up.railway.app/v1";
 const API_KEY = "VCtEZPZKKc33BvoN3hq1O1JacCr7RM8K8zylcx83";
-const BASE_URL = "https://api.4p.finance/v1";
 
 interface Chain {
   chainId: string;
@@ -51,9 +51,12 @@ export const PixGenerator: React.FC = () => {
           }
         });
 
+        logDebug(`URL da requisição: ${BASE_URL}/chains`);
         logDebug(`Status da resposta: ${response.status}`);
 
         if (!response.ok) {
+          const errorText = await response.text();
+          logDebug(`Erro da resposta: ${errorText}`);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
@@ -63,23 +66,24 @@ export const PixGenerator: React.FC = () => {
         const data = JSON.parse(text);
         logDebug(`Dados parseados: ${JSON.stringify(data, null, 2)}`);
 
-        // Verificação detalhada da estrutura da resposta
-        if (!data.info || !data.info.data || !data.info.data.chains) {
-          throw new Error("Estrutura de dados de redes inválida");
-        }
+        // Log detalhado da estrutura da resposta
+        logDebug(`Estrutura da resposta: ${Object.keys(data)}`);
 
-        const chainsArray: Chain[] = Object.entries(data.info.data.chains)
+        // Ajuste na lógica de processamento das chains
+        const chainsArray: Chain[] = Object.entries(data)
+          .filter(([key, value]) => typeof value === 'object' && (value as any).enable)
           .map(([key, value]) => ({
             chainId: key,
-            ...(value as Chain)
-          }))
-          .filter(chain => chain.enable);
+            chainName: (value as any).chainName || key,
+            enable: (value as any).enable,
+            chainIdHex: (value as any).chainIdHex || ''
+          }));
 
         logDebug(`Redes processadas: ${JSON.stringify(chainsArray, null, 2)}`);
 
         setChains(chainsArray);
         
-        const polygonChain = chainsArray.find(chain => chain.chainName === "Polygon");
+        const polygonChain = chainsArray.find(chain => chain.chainName.toLowerCase().includes("polygon"));
         if (polygonChain) {
           setSelectedChain(polygonChain.chainId);
         } else if (chainsArray.length > 0) {
@@ -93,66 +97,6 @@ export const PixGenerator: React.FC = () => {
 
     fetchChains();
   }, []);
-
-  useEffect(() => {
-    const fetchCurrencies = async () => {
-      if (!selectedChain) return;
-
-      try {
-        logDebug(`Buscando moedas para chain: ${selectedChain}`);
-        
-        const response = await fetch(`${BASE_URL}/currencies/${parseInt(selectedChain)}`, {
-          method: 'GET',
-          headers: { 
-            'x-api-key': API_KEY,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        logDebug(`Status da resposta de moedas: ${response.status}`);
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const text = await response.text();
-        logDebug(`Resposta bruta de moedas: ${text}`);
-
-        const data = JSON.parse(text);
-        logDebug(`Dados de moedas parseados: ${JSON.stringify(data, null, 2)}`);
-
-        // Verificação detalhada da estrutura da resposta
-        if (!data.info || !data.info.data || !data.info.data.tokens) {
-          throw new Error("Estrutura de dados de moedas inválida");
-        }
-
-        const currenciesArray: Currency[] = Object.entries(data.info.data.tokens)
-          .map(([key, value]) => ({
-            symbol: key,
-            ...(value as Currency)
-          }))
-          .filter(currency => currency.enable);
-
-        logDebug(`Moedas processadas: ${JSON.stringify(currenciesArray, null, 2)}`);
-
-        setCurrencies(currenciesArray);
-        
-        const maticCurrency = currenciesArray.find(currency => currency.symbol === "MATIC");
-        if (maticCurrency) {
-          setSelectedCurrency(maticCurrency.symbol);
-        } else if (currenciesArray.length > 0) {
-          setSelectedCurrency(currenciesArray[0].symbol);
-        }
-      } catch (error) {
-        logDebug(`Erro detalhado de moedas: ${error instanceof Error ? error.message : String(error)}`);
-        toast.error(`Erro ao buscar moedas: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    };
-
-    fetchCurrencies();
-  }, [selectedChain]);
-
-  // Resto do código permanece o mesmo...
 
   return (
     <Card className="w-full max-w-md mx-auto">
