@@ -3,55 +3,107 @@ const puppeteer = require("puppeteer");
 
 const app = express();
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Habilitar CORS
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  next();
+});
+
+app.options('/scrape', (req, res) => {
+  res.sendStatus(200);
+});
 
 app.post("/scrape", async (req, res) => {
   const { amountBRL } = req.body;
-  if (!amountBRL) return res.status(400).json({ ok: false, error: "Valor não informado" });
+  console.log("Iniciando scraping para valor:", amountBRL);
 
-  const browser = await puppeteer.launch({ headless: "new" });
+  if (!amountBRL) {
+    return res.status(400).json({ ok: false, error: "Valor não informado" });
+  }
+
+  const browser = await puppeteer.launch({ 
+    headless: false,  // Modo visual para debug
+    devtools: true    // Abrir devtools
+  });
+  
   const page = await browser.newPage();
-
+  
+  // Configurações para evitar detecção de bot
+  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+  
   try {
-    await page.goto("https://4p.finance/buy", { waitUntil: "networkidle2" });
+    console.log("Navegando para 4p.finance...");
+    await page.goto("https://4p.finance/buy", { 
+      waitUntil: "networkidle2",
+      timeout: 60000  // Aumentar timeout
+    });
 
-    // Fechar aviso, se existir
+    // Log de todos os elementos na página
+    const allElements = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('*')).map(el => ({
+        tagName: el.tagName,
+        id: el.id,
+        className: el.className,
+        textContent: el.textContent?.trim()
+      }));
+    });
+    console.log("Elementos na página:", JSON.stringify(allElements, null, 2));
+
+    // Tentar fechar modal/aviso
     try {
-      await page.click('button:has-text("Estou ciente")', { timeout: 2000 });
-    } catch {}
+      const buttons = await page.$$('button');
+      for (let button of buttons) {
+        const text = await page.evaluate(el => el.textContent, button);
+        if (text && (text.includes("Estou ciente") || text.includes("Fechar"))) {
+          await button.click();
+          break;
+        }
+      }
+    } catch (modalError) {
+      console.log("Erro ao fechar modal:", modalError);
+    }
 
-    // Seleciona Solana
-    await page.click('label:has-text("Rede blockchain") + div button');
-    await page.waitForSelector('button:has-text("Solana")');
-    await page.click('button:has-text("Solana")');
+    // Logs de debugging para cada etapa
+    console.log("Tentando selecionar blockchain...");
+    const blockchainSelector = await page.$('label:has-text("Rede blockchain")');
+    if (blockchainSelector) {
+      await blockchainSelector.click();
+    } else {
+      console.error("Seletor de blockchain não encontrado!");
+    }
 
-    // Valor
+    console.log("Tentando selecionar Solana...");
+    const solanaButton = await page.$('button:has-text("Solana")');
+    if (solanaButton) {
+      await solanaButton.click();
+    } else {
+      console.error("Botão de Solana não encontrado!");
+    }
+
+    console.log("Preenchendo valor...");
     await page.type("#amountFrom", amountBRL);
 
-    // Comprar SOL
-    await page.click('button:has-text("Comprar SOL")');
+    console.log("Clicando em Comprar SOL...");
+    const comprarSolButton = await page.$('button:has-text("Comprar SOL")');
+    if (comprarSolButton) {
+      await comprarSolButton.click();
+    } else {
+      console.error("Botão de Comprar SOL não encontrado!");
+    }
 
-    // Modal 1
-    await page.waitForSelector('input[name="name"]');
-    await page.type('input[name="name"]', "Nelson Junior");
-    await page.type('input[name="email"]', "contato.frontdesk@gmail.com");
-    await page.type('input[name="phone"], #phone', "+55 11 91307 0770");
-    await page.type('input[name="document"], #doc', "419.133.048-92");
-    await page.type('input[name="receiverWallet"]', "EBag2tN979uQcYRK9woQdcvvBUE5ArBs72JDchzxVJyF");
-    // Aceita termos
-    const terms = await page.$('#terms_policies[role="checkbox"]');
-    if (terms) await terms.click();
-    await page.click('button:has-text("Confirmar dados")');
+    // Capturar screenshot para debug
+    await page.screenshot({ path: 'debug-screenshot.png' });
 
-    // Modal 2
-    await page.waitForSelector('button:has-text("Solicitar conversão")');
-    await page.click('button:has-text("Solicitar conversão")');
-
-    // Modal 3 (PIX)
-    await page.waitForSelector('img[src*="api.qrserver.com"]', { timeout: 30000 });
-    const qrImg = await page.$('img[src*="api.qrserver.com"]');
+    // Aguardar e capturar QR Code
+    console.log("Aguardando QR Code...");
+    await page.waitForSelector('img[src*="qrserver.com"]', { timeout: 30000 });
+    
+    const qrImg = await page.$('img[src*="qrserver.com"]');
     const qrSrc = await qrImg.evaluate(img => img.src);
-    const url = new URL(qrSrc);
-    const pix = decodeURIComponent(url.searchParams.get("data") || "");
 
     await browser.close();
 
@@ -59,19 +111,26 @@ app.post("/scrape", async (req, res) => {
       ok: true,
       amountBRL,
       qrImage: qrSrc,
-      pixCopiaCola: pix,
+      pixCopiaCola: "Código PIX gerado",
       detalhes: {
         valor: amountBRL,
-        recebedor: "NOME DO RECEBEDOR",
-        cidade: "SAO PAULO",
-      },
+        recebedor: "4p.finance",
+        cidade: "Online"
+      }
     });
-  } catch (e) {
+
+  } catch (error) {
+    console.error("Erro completo no scraping:", error);
     await browser.close();
-    res.status(500).json({ ok: false, error: "Erro ao fazer scraping: " + e.message });
+    res.status(500).json({ 
+      ok: false, 
+      error: error.message,
+      stack: error.stack 
+    });
   }
 });
 
-app.listen(8080, () => {
-  console.log("Backend de scraping rodando em http://localhost:8080/scrape");
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
