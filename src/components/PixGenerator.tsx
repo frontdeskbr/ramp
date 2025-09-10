@@ -9,6 +9,7 @@ export const PixGenerator: React.FC = () => {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [pixCode, setPixCode] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const generatePix = async () => {
     if (!amount) {
@@ -16,34 +17,61 @@ export const PixGenerator: React.FC = () => {
       return;
     }
 
+    setIsLoading(true);
+    setDebugInfo("Iniciando requisição...");
+
     try {
-      setDebugInfo("Iniciando requisição...");
-      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
+
       const response = await fetch('https://trvgqfnvoymwgxtlkpvi.supabase.co/functions/v1/pix-scraper', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ amountBRL: amount })
+        body: JSON.stringify({ amountBRL: amount }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        setDebugInfo(`Erro na resposta: ${response.status} - ${errorText}`);
+        toast.error(`Erro: ${response.statusText}`);
+        return;
+      }
 
       const responseText = await response.text();
       setDebugInfo(`Resposta bruta: ${responseText}`);
 
-      const data = JSON.parse(responseText);
+      try {
+        const data = JSON.parse(responseText);
 
-      if (data.ok) {
-        setQrCode(data.qrImage);
-        setPixCode(data.pixCopiaCola);
-        toast.success("PIX gerado com sucesso!");
-      } else {
-        toast.error(data.error || "Erro ao gerar PIX");
+        if (data.ok) {
+          setQrCode(data.qrImage);
+          setPixCode(data.pixCopiaCola);
+          toast.success("PIX gerado com sucesso!");
+        } else {
+          toast.error(data.error || "Erro ao gerar PIX");
+        }
+      } catch (parseError) {
+        setDebugInfo(`Erro ao parsear JSON: ${parseError}`);
+        toast.error("Erro ao processar resposta");
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       setDebugInfo(`Erro completo: ${errorMessage}`);
-      toast.error("Erro ao conectar com o serviço de PIX");
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        toast.error("Tempo limite excedido. Tente novamente.");
+      } else {
+        toast.error("Erro ao conectar com o serviço de PIX");
+      }
+      
       console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -71,8 +99,9 @@ export const PixGenerator: React.FC = () => {
           <Button 
             onClick={generatePix} 
             className="w-full"
+            disabled={isLoading}
           >
-            Gerar PIX
+            {isLoading ? "Gerando..." : "Gerar PIX"}
           </Button>
 
           {debugInfo && (

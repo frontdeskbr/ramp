@@ -3,11 +3,30 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
 serve((req: Request) => {
+  // Log de todos os headers recebidos
+  console.log("Headers recebidos:", Object.fromEntries(req.headers));
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    console.log("Respondendo preflight OPTIONS");
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204
+    });
+  }
+
+  if (req.method !== "POST") {
+    console.log(`Método não permitido: ${req.method}`);
+    return new Response(JSON.stringify({ 
+      ok: false, 
+      error: "Método não permitido" 
+    }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
   }
 
   return (async () => {
@@ -15,7 +34,7 @@ serve((req: Request) => {
       console.log("Recebendo requisição de PIX");
       
       const body = await req.json();
-      console.log("Corpo da requisição:", body);
+      console.log("Corpo da requisição:", JSON.stringify(body, null, 2));
       
       const { amountBRL } = body;
       
