@@ -8,6 +8,7 @@ export const PixGenerator: React.FC = () => {
   const [amount, setAmount] = useState("");
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [pixCode, setPixCode] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   const generatePix = async () => {
     if (!amount) {
@@ -16,6 +17,8 @@ export const PixGenerator: React.FC = () => {
     }
 
     try {
+      setDebugInfo("Iniciando requisição...");
+      
       const response = await fetch('https://trvgqfnvoymwgxtlkpvi.supabase.co/functions/v1/pix-scraper', {
         method: 'POST',
         headers: {
@@ -24,7 +27,10 @@ export const PixGenerator: React.FC = () => {
         body: JSON.stringify({ amountBRL: amount })
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+      setDebugInfo(`Resposta bruta: ${responseText}`);
+
+      const data = JSON.parse(responseText);
 
       if (data.ok) {
         setQrCode(data.qrImage);
@@ -34,6 +40,8 @@ export const PixGenerator: React.FC = () => {
         toast.error(data.error || "Erro ao gerar PIX");
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setDebugInfo(`Erro completo: ${errorMessage}`);
       toast.error("Erro ao conectar com o serviço de PIX");
       console.error(error);
     }
@@ -66,6 +74,12 @@ export const PixGenerator: React.FC = () => {
           >
             Gerar PIX
           </Button>
+
+          {debugInfo && (
+            <div className="bg-gray-100 p-2 rounded-md text-xs overflow-x-auto">
+              <pre>{debugInfo}</pre>
+            </div>
+          )}
 
           {qrCode && (
             <div className="flex flex-col items-center space-y-4">

@@ -12,9 +12,15 @@ serve((req: Request) => {
 
   return (async () => {
     try {
-      const { amountBRL } = await req.json();
+      console.log("Recebendo requisição de PIX");
+      
+      const body = await req.json();
+      console.log("Corpo da requisição:", body);
+      
+      const { amountBRL } = body;
       
       if (!amountBRL) {
+        console.error("Valor não informado");
         return new Response(JSON.stringify({ 
           ok: false, 
           error: "Valor não informado" 
@@ -24,9 +30,13 @@ serve((req: Request) => {
         });
       }
 
+      console.log(`Gerando PIX para valor: ${amountBRL}`);
+
       const pixCopiaCola = `00020126360014BR.GOV.BCB.PIX0114+551199999999520400005303986540${amountBRL.replace(",", ".")}5802BR5920NOME DO RECEBEDOR6009SAO PAULO62070503***6304ABCD`;
       
       const qrImage = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(pixCopiaCola)}`;
+
+      console.log("PIX gerado com sucesso");
 
       return new Response(
         JSON.stringify({
@@ -48,6 +58,7 @@ serve((req: Request) => {
         }
       );
     } catch (e) {
+      console.error("Erro na geração de PIX:", e);
       return new Response(JSON.stringify({ 
         ok: false, 
         error: "Erro interno: " + (e instanceof Error ? e.message : String(e)) 
