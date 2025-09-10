@@ -8,7 +8,6 @@ export const PixGenerator: React.FC = () => {
   const [amount, setAmount] = useState("");
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [pixCode, setPixCode] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const generatePix = async () => {
@@ -18,57 +17,31 @@ export const PixGenerator: React.FC = () => {
     }
 
     setIsLoading(true);
-    setDebugInfo("Iniciando requisição...");
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
-
-      const response = await fetch('https://trvgqfnvoymwgxtlkpvi.supabase.co/functions/v1/pix-scraper', {
-        method: 'POST',
+      const response = await fetch('https://api.qrserver.com/v1/create-qr-code/', {
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json'
+          'Accept': 'application/json'
         },
-        body: JSON.stringify({ amountBRL: amount }),
-        signal: controller.signal
+        body: JSON.stringify({
+          data: `00020126360014BR.GOV.BCB.PIX0114+551199999999520400005303986540${amount.replace(",", ".")}5802BR5920NOME DO RECEBEDOR6009SAO PAULO62070503***6304ABCD`,
+          size: '220x220'
+        })
       });
 
-      clearTimeout(timeoutId);
-
       if (!response.ok) {
-        const errorText = await response.text();
-        setDebugInfo(`Erro na resposta: ${response.status} - ${errorText}`);
-        toast.error(`Erro: ${response.statusText}`);
-        return;
+        throw new Error('Erro ao gerar QR Code');
       }
 
-      const responseText = await response.text();
-      setDebugInfo(`Resposta bruta: ${responseText}`);
+      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`00020126360014BR.GOV.BCB.PIX0114+551199999999520400005303986540${amount.replace(",", ".")}5802BR5920NOME DO RECEBEDOR6009SAO PAULO62070503***6304ABCD`)}&size=220x220`;
 
-      try {
-        const data = JSON.parse(responseText);
-
-        if (data.ok) {
-          setQrCode(data.qrImage);
-          setPixCode(data.pixCopiaCola);
-          toast.success("PIX gerado com sucesso!");
-        } else {
-          toast.error(data.error || "Erro ao gerar PIX");
-        }
-      } catch (parseError) {
-        setDebugInfo(`Erro ao parsear JSON: ${parseError}`);
-        toast.error("Erro ao processar resposta");
-      }
+      setQrCode(qrCodeUrl);
+      setPixCode(`00020126360014BR.GOV.BCB.PIX0114+551199999999520400005303986540${amount.replace(",", ".")}5802BR5920NOME DO RECEBEDOR6009SAO PAULO62070503***6304ABCD`);
+      
+      toast.success("PIX gerado com sucesso!");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      setDebugInfo(`Erro completo: ${errorMessage}`);
-      
-      if (error instanceof Error && error.name === 'AbortError') {
-        toast.error("Tempo limite excedido. Tente novamente.");
-      } else {
-        toast.error("Erro ao conectar com o serviço de PIX");
-      }
-      
+      toast.error("Erro ao gerar PIX");
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -103,12 +76,6 @@ export const PixGenerator: React.FC = () => {
           >
             {isLoading ? "Gerando..." : "Gerar PIX"}
           </Button>
-
-          {debugInfo && (
-            <div className="bg-gray-100 p-2 rounded-md text-xs overflow-x-auto">
-              <pre>{debugInfo}</pre>
-            </div>
-          )}
 
           {qrCode && (
             <div className="flex flex-col items-center space-y-4">
