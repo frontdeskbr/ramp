@@ -26,19 +26,24 @@ interface Token {
   logoURI: string;
 }
 
-interface ChainsResponse {
+interface TokensResponse {
   http_code: number;
   success: boolean;
   info: {
     result: string;
     message: string;
     data: {
-      chains: {
-        [chainIdHex: string]: {
+      tokens: {
+        [symbol: string]: {
           enable: boolean;
-          chainId: number;
-          chainIdHex: string;
-          chainName: string;
+          chainid: number;
+          ChainName: string;
+          chainidhex: string;
+          symbol: string;
+          name: string;
+          decimals: number;
+          address: string;
+          logoURI: string;
         };
       };
     };
@@ -59,12 +64,12 @@ export const PixGenerator: React.FC = () => {
     setDebugInfo(prev => `${prev}\n${message}`);
   };
 
-  const fetchChains = async () => {
+  const fetchTokens = async (chainId: string) => {
     try {
       setIsLoading(true);
-      logDebug("Iniciando busca de redes...");
+      logDebug(`Buscando tokens para rede ${chainId}...`);
       
-      const response = await fetch(`${BASE_URL}/chains`, {
+      const response = await fetch(`${BASE_URL}/currencies/${chainId}`, {
         method: 'GET',
         headers: { 
           'x-api-key': API_KEY,
@@ -78,24 +83,22 @@ export const PixGenerator: React.FC = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data: ChainsResponse = await response.json();
-      const chainsArray = Object.entries(data.info.data.chains)
-        .filter(([_, chain]) => chain.enable)
-        .map(([chainIdHex, chain]) => ({
-          chainIdHex,
-          chainId: chain.chainId,
-          chainName: chain.chainName,
-          enable: chain.enable
+      const data: TokensResponse = await response.json();
+      const tokensArray = Object.entries(data.info.data.tokens)
+        .filter(([_, token]) => token.enable)
+        .map(([symbol, token]) => ({
+          ...token,
+          symbol: symbol
         }));
 
-      setChains(chainsArray);
+      setTokens(tokensArray);
       
-      if (chainsArray.length > 0) {
-        setSelectedChain(chainsArray[0].chainIdHex);
+      if (tokensArray.length > 0) {
+        setSelectedToken(tokensArray[0].symbol);
       }
     } catch (error) {
       logDebug(`Erro detalhado: ${error instanceof Error ? error.message : String(error)}`);
-      toast.error(`Erro ao buscar redes: ${error instanceof Error ? error.message : String(error)}`);
+      toast.error(`Erro ao buscar tokens: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsLoading(false);
     }
