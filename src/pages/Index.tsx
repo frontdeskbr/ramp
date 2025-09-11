@@ -1,5 +1,4 @@
 import { PixGenerator } from "@/components/PixGenerator";
-import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
   return (
@@ -9,9 +8,6 @@ const Index = () => {
           Gerador de PIX Instantâneo
         </h1>
         <PixGenerator />
-        <div className="mt-8 text-center">
-          <MadeWithDyad />
-        </div>
       </div>
     </div>
   );
